@@ -10,9 +10,6 @@
     <renderingBindings
         renderingIds="org.eclipse.cdt.debug.ui.memory.traditional.TraditionalRendering"
         defaultIds="org.eclipse.cdt.debug.ui.memory.traditional.TraditionalRendering">
-        <enablement>
-            <instanceof value="org.eclipse.debug.core.model.IMemoryBlockExtension"/>
-        </enablement>    
     </renderingBindings>          
 </extension>
 

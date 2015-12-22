@@ -20,17 +20,24 @@ package org.eclipse.cdt.dsf.gdb.service;
 
 import java.util.Hashtable;
 
+//import org.eclipse.debug.internal.core.*;
+//import org.eclipse.debug.core.ILaunchConfiguration;
+//import org.eclipse.debug.core.ILaunch;
+//import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.cdt.dsf.concurrent.DataRequestMonitor;
 import org.eclipse.cdt.dsf.concurrent.ImmediateRequestMonitor;
 import org.eclipse.cdt.dsf.concurrent.RequestMonitor;
 import org.eclipse.cdt.dsf.datamodel.AbstractDMEvent;
 import org.eclipse.cdt.dsf.datamodel.DMContexts;
 import org.eclipse.cdt.dsf.datamodel.IDMContext;
+
 import org.eclipse.cdt.dsf.debug.service.IRunControl;
 import org.eclipse.cdt.dsf.debug.service.IRunControl2;
 import org.eclipse.cdt.dsf.debug.service.IStack.IFrameDMContext;
 import org.eclipse.cdt.dsf.debug.service.command.ICommand;
 import org.eclipse.cdt.dsf.debug.service.command.ICommandControlService.ICommandControlDMContext;
+//import org.eclipse.cdt.dsf.gdb.IGDBLaunchConfigurationConstants;
+import org.eclipse.cdt.dsf.gdb.SimplePrefStore;
 import org.eclipse.cdt.dsf.gdb.internal.GdbPlugin;
 import org.eclipse.cdt.dsf.gdb.service.IGDBTraceControl.ITraceRecordSelectedChangedDMEvent;
 import org.eclipse.cdt.dsf.mi.service.IMICommandControl;
@@ -43,6 +50,7 @@ import org.eclipse.cdt.dsf.mi.service.command.CommandFactory;
 import org.eclipse.cdt.dsf.mi.service.command.output.MIInfo;
 import org.eclipse.cdt.dsf.service.DsfServiceEventHandler;
 import org.eclipse.cdt.dsf.service.DsfSession;
+//import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
@@ -366,7 +374,13 @@ public class GDBRunControl_7_0 extends GDBRunControl implements IReverseRunContr
     		rm.done();
     		return;
     	}
-    	
+
+        SimplePrefStore store = new SimplePrefStore();
+        boolean needGDBRecord;
+        needGDBRecord = store.getRecordAttr();
+
+        if (needGDBRecord)
+        {
     	getConnection().queueCommand(
     			fCommandFactory.createCLIRecord(context, enable),
     			new DataRequestMonitor<MIInfo>(getExecutor(), rm) {
@@ -376,7 +390,13 @@ public class GDBRunControl_7_0 extends GDBRunControl implements IReverseRunContr
     					rm.done();
     				}
     			});
-	}
+        }
+        else
+        {
+            setReverseModeEnabled(enable);
+            rm.done();
+        }
+    }
 
 	// Overridden to use the new MI command -exec-jump
 	/** @since 3.0 */

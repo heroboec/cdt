@@ -44,6 +44,7 @@ import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.cdt.dsf.gdb.*;
 
 /**
  * The dynamic tab for gdb-based debugger implementations.
@@ -56,6 +57,7 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 	protected Button fReverseCheckBox;
 	protected Button fUpdateThreadlistOnSuspend;
 	protected Button fDebugOnFork;
+	protected Button fUseGdbRecordCheckBox;
 	
 	/**
 	 * A combo box to let the user choose if fast tracepoints should be used or not.
@@ -91,12 +93,22 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 				preferenceStore.getBoolean(IGdbDebugPreferenceConstants.PREF_DEFAULT_NON_STOP));
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_REVERSE,
 				IGDBLaunchConfigurationConstants.DEBUGGER_REVERSE_DEFAULT);
+		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+				IGDBLaunchConfigurationConstants.DEBUGGER_RECORD_DEFAULT);
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_UPDATE_THREADLIST_ON_SUSPEND,
 				IGDBLaunchConfigurationConstants.DEBUGGER_UPDATE_THREADLIST_ON_SUSPEND_DEFAULT);
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_DEBUG_ON_FORK,
 				IGDBLaunchConfigurationConstants.DEBUGGER_DEBUG_ON_FORK_DEFAULT);
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_TRACEPOINT_MODE,
 				IGDBLaunchConfigurationConstants.DEBUGGER_TRACEPOINT_MODE_DEFAULT);
+		SimplePrefStore store = new SimplePrefStore();
+		try {
+			store.setRecordAttr(configuration.getAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+					IGDBLaunchConfigurationConstants.DEBUGGER_RECORD_DEFAULT));
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		if (fSolibBlock != null)
 			fSolibBlock.setDefaults(configuration);
@@ -144,6 +156,8 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 				preferenceStore.getBoolean(IGdbDebugPreferenceConstants.PREF_DEFAULT_NON_STOP));
 		boolean reverseEnabled = getBooleanAttr(configuration, IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_REVERSE,
 				IGDBLaunchConfigurationConstants.DEBUGGER_REVERSE_DEFAULT);
+		boolean gdbBasedRecordEnabled = getBooleanAttr(configuration, IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+				IGDBLaunchConfigurationConstants.DEBUGGER_RECORD_DEFAULT);
 		boolean updateThreadsOnSuspend = getBooleanAttr(configuration, IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_UPDATE_THREADLIST_ON_SUSPEND,
 				IGDBLaunchConfigurationConstants.DEBUGGER_UPDATE_THREADLIST_ON_SUSPEND_DEFAULT);
 		boolean debugOnFork = getBooleanAttr(configuration, IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_DEBUG_ON_FORK,
@@ -155,9 +169,19 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 		fGDBInitText.setText(gdbInit);
 		fNonStopCheckBox.setSelection(nonStopMode);
 		fReverseCheckBox.setSelection(reverseEnabled);
+		fUseGdbRecordCheckBox.setSelection(gdbBasedRecordEnabled);
 		fUpdateThreadlistOnSuspend.setSelection(updateThreadsOnSuspend);
 		fDebugOnFork.setSelection(debugOnFork);
 		
+		SimplePrefStore store = new SimplePrefStore();
+		try {
+			store.setRecordAttr(configuration.getAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+					IGDBLaunchConfigurationConstants.DEBUGGER_RECORD_DEFAULT));
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		updateTracepointModeFromConfig(configuration);
 		
 		setInitializing(false);
@@ -212,11 +236,22 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 				fNonStopCheckBox.getSelection());
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_REVERSE,
                 fReverseCheckBox.getSelection());
+		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+				fUseGdbRecordCheckBox.getSelection());
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_UPDATE_THREADLIST_ON_SUSPEND,
                 fUpdateThreadlistOnSuspend.getSelection());
 		configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_DEBUG_ON_FORK,
 				fDebugOnFork.getSelection());
 		
+		SimplePrefStore store = new SimplePrefStore();
+		try {
+			store.setRecordAttr(configuration.getAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_RECORD,
+					IGDBLaunchConfigurationConstants.DEBUGGER_RECORD_DEFAULT));
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		if (fTracepointModeCombo != null) {
 			configuration.setAttribute(IGDBLaunchConfigurationConstants.ATTR_DEBUGGER_TRACEPOINT_MODE,
 									   getSelectedTracepointMode());
@@ -360,6 +395,8 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 		gd.widthHint = 200;
 		label.setLayoutData(gd);
 
+		fUseGdbRecordCheckBox = addCheckbox(subComp, LaunchUIMessages.getString("GDBDebuggerPage.is_record_command_use")); //$NON-NLS-1$
+
 		// TODO: Ideally, this field should be disabled if the back-end doesn't support non-stop debugging
 		// TODO: Find a way to determine if non-stop is supported (i.e. find the GDB version) then grey out the check box if necessary
 		fNonStopCheckBox = addCheckbox(subComp, LaunchUIMessages.getString("GDBDebuggerPage.nonstop_mode")); //$NON-NLS-1$
@@ -373,7 +410,7 @@ public class GdbDebuggerPage extends AbstractCDebuggerPage implements Observer {
 		PlatformUI.getWorkbench().getHelpSystem().setHelp(fUpdateThreadlistOnSuspend, GdbUIPlugin.PLUGIN_ID + ".update_threadlist_button_context"); //$NON-NLS-1$
 
 		fDebugOnFork = addCheckbox(subComp, LaunchUIMessages.getString("GDBDebuggerPage.Automatically_debug_forked_processes")); //$NON-NLS-1$
-		
+
 		createTracepointModeCombo(subComp);
 	}
 
